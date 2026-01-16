@@ -1,0 +1,29 @@
+{
+  "region": "us-east",
+  "timeoutMs": 7000,
+
+  "emitJson": true,
+
+  "consecutiveFailForMajor": 3,
+  "consecutiveOkForRecovery": 5,
+
+  "controlProbes": [
+    "https://example.com",
+    "https://www.cloudflare.com/cdn-cgi/trace"
+  ],
+
+  "providers": {
+    "mobile": "./providers/mobile.json",
+    "isp": "./providers/isp.json",
+    "cloud": "./providers/cloud.json"
+  },
+
+  "mqtt": {
+    "enabled": false,
+    "url": "mqtt://127.0.0.1:1883",
+    "topic": "meshmonitor/carrier/outage",
+    "username": "",
+    "password": "",
+    "clientId": "meshmonitor-carrier-outage"
+  }
+}
