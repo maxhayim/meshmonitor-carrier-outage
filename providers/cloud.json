@@ -1,0 +1,41 @@
+[
+  {
+    "name": "cloudflare",
+    "type": "cloud",
+    "probes": [
+      "https://www.cloudflare.com/",
+      "https://1.1.1.1/",
+      "https://www.cloudflare.com/cdn-cgi/trace"
+    ],
+    "dns": ["cloudflare.com", "one.one.one.one"]
+  },
+  {
+    "name": "aws",
+    "type": "cloud",
+    "probes": [
+      "https://aws.amazon.com/",
+      "https://status.aws.amazon.com/"
+    ],
+    "dns": ["amazon.com", "aws.amazon.com"]
+  },
+  {
+    "name": "google",
+    "type": "cloud",
+    "probes": [
+      "https://www.google.com/",
+      "https://cloud.google.com/",
+      "https://status.cloud.google.com/"
+    ],
+    "dns": ["google.com", "cloud.google.com"]
+  },
+  {
+    "name": "microsoft",
+    "type": "cloud",
+    "probes": [
+      "https://www.microsoft.com/",
+      "https://azure.microsoft.com/",
+      "https://status.azure.com/"
+    ],
+    "dns": ["microsoft.com", "azure.microsoft.com"]
+  }
+]
