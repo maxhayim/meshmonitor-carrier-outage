@@ -1,29 +1,6 @@
 [
   {
     "name": "att",
-    "type": "mobile",
-    "probes": [
-      "https://www.att.com/",
-      "https://www.att.com/support/"
-    ],
-    "dns": ["att.com", "www.att.com"]
-  },
-  {
-    "name": "verizon",
-    "type": "mobile",
-    "probes": [
-      "https://www.verizon.com/",
-      "https://www.verizon.com/support/"
-    ],
-    "dns": ["verizon.com", "www.verizon.com"]
-  },
-  {
-    "name": "tmobile",
-    "type": "mobile",
-    "probes": [
-      "https://www.t-mobile.com/",
-      "https://www.t-mobile.com/support"
-    ],
-    "dns": ["t-mobile.com", "www.t-mobile.com"]
+    "type": "mobile"
   }
 ]
