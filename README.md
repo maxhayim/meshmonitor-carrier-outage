@@ -9,7 +9,7 @@
 
 # 📡 Carrier Outage
 
-A MeshMonitor-friendly Node.js script that detects **major provider outages** (mobile carriers, ISPs/landline providers, and core cloud/CDN/DNS infrastructure) using conservative public reachability signals.
+Carrier Outage is a MeshMonitor Script script that detects **major provider outages** (mobile carriers, ISPs/landline providers, and core cloud/CDN/DNS infrastructure) using conservative public reachability signals.
 
 The intent is operational: quickly answer **“Is the problem local to my node/ISP, or is there a wider provider event?”**
 
