@@ -7,7 +7,7 @@
   </a>
 </p>
 
-# 📡 meshmonitor-carrier-outage
+# 📡 Carrier Outage
 
 A MeshMonitor-friendly Node.js script that detects **major provider outages** (mobile carriers, ISPs/landline providers, and core cloud/CDN/DNS infrastructure) using conservative public reachability signals.
 
