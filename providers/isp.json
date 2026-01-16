@@ -1,0 +1,38 @@
+[
+  {
+    "name": "comcast_xfinity",
+    "type": "isp",
+    "probes": [
+      "https://www.xfinity.com/",
+      "https://www.comcast.com/"
+    ],
+    "dns": ["xfinity.com", "comcast.com"]
+  },
+  {
+    "name": "spectrum",
+    "type": "isp",
+    "probes": [
+      "https://www.spectrum.com/",
+      "https://www.spectrum.net/"
+    ],
+    "dns": ["spectrum.com", "spectrum.net"]
+  },
+  {
+    "name": "att_fiber",
+    "type": "isp",
+    "probes": [
+      "https://www.att.com/internet/",
+      "https://www.att.com/support/"
+    ],
+    "dns": ["att.com"]
+  },
+  {
+    "name": "verizon_fios",
+    "type": "isp",
+    "probes": [
+      "https://www.verizon.com/home/fios/",
+      "https://www.verizon.com/support/"
+    ],
+    "dns": ["verizon.com"]
+  }
+]
