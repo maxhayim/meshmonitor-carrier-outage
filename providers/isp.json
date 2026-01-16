@@ -1,6 +1,42 @@
 [
-  { "name": "comcast_xfinity", "type": "isp" },
-  { "name": "spectrum", "type": "isp" },
-  { "name": "att_fiber", "type": "isp" },
-  { "name": "verizon_fios", "type": "isp" }
+  {
+    "name": "comcast_xfinity",
+    "type": "isp",
+    "thresholds": {
+      "scopeStateMinNodes": 2,
+      "scopeNationwideMinStates": 3,
+      "scopeNationwideMinNodes": 6,
+      "debounceMs": 120000
+    }
+  },
+  {
+    "name": "spectrum",
+    "type": "isp",
+    "thresholds": {
+      "scopeStateMinNodes": 2,
+      "scopeNationwideMinStates": 3,
+      "scopeNationwideMinNodes": 6,
+      "debounceMs": 120000
+    }
+  },
+  {
+    "name": "att_fiber",
+    "type": "isp",
+    "thresholds": {
+      "scopeStateMinNodes": 2,
+      "scopeNationwideMinStates": 3,
+      "scopeNationwideMinNodes": 6,
+      "debounceMs": 120000
+    }
+  },
+  {
+    "name": "verizon_fios",
+    "type": "isp",
+    "thresholds": {
+      "scopeStateMinNodes": 2,
+      "scopeNationwideMinStates": 3,
+      "scopeNationwideMinNodes": 6,
+      "debounceMs": 120000
+    }
+  }
 ]
