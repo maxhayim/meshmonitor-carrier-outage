@@ -1,8 +1,7 @@
 <p align="center">
- <a href="https://nodejs.org/">
-  <img src="https://img.shields.io/badge/Node.js-18%2B-brightgreen" alt="Node.js Version">
-</a>
-  
+  <a href="https://nodejs.org/">
+    <img src="https://img.shields.io/badge/Node.js-18%2B-brightgreen" alt="Node.js Version">
+  </a>
   <a href="https://opensource.org/licenses/MIT">
     <img src="https://img.shields.io/badge/License-MIT-green" alt="License">
   </a>
@@ -10,105 +9,123 @@
 
 # 📡 Carrier Outage
 
-Carrier Outage is a [**MeshMonitor**](https://github.com/Yeraze/MeshMonitor) script that detects **major provider outages** (mobile carriers, ISPs/landline providers, and core cloud/CDN/DNS infrastructure) using conservative public reachability signals.
+**Carrier Outage** is a [**MeshMonitor**](https://github.com/Yeraze/MeshMonitor) script that detects **major provider outages** across mobile carriers, ISP / landline providers, and core cloud/CDN/DNS infrastructure using conservative public reachability signals.
 
-The intent is operational: quickly answer **“Is the problem local to my node/ISP, or is there a wider provider event?”**
+The intent is operational and practical:
+
+> **“Is the problem local to my node or ISP, or is there a wider provider-level event?”**
+
+---
 
 ## What it monitors
 
 Providers are grouped into three classes:
 
-- **Mobile** (e.g., AT&T, Verizon, T-Mobile)
-- **ISP / Landline** (e.g., Comcast/Xfinity, Spectrum, AT&T Fiber, Verizon Fios, plus optional transit/backbone)
-- **Cloud / Core Internet** (e.g., Cloudflare, AWS, Google, Microsoft Azure)
+- **Mobile**  
+  Examples: AT&T, Verizon, T-Mobile
 
-You can add/remove providers by editing the JSON files in `providers/`.
+- **ISP / Landline**  
+  Examples: Comcast/Xfinity, Spectrum, AT&T Fiber, Verizon Fios  
+  (optionally including transit/backbone providers)
+
+- **Cloud / Core Internet**  
+  Examples: Cloudflare, AWS, Google, Microsoft Azure
+
+Providers can be added, removed, or customized by editing the JSON files in the `providers/` directory.
+
+---
 
 ## How detection works
 
-Each provider has multiple **signals**:
+Each provider is evaluated using multiple **signals**:
 
-- HTTP probes (GET) to public endpoints
-- Optional DNS resolution checks
-- A set of **control probes** (known-good endpoints) to detect when *your host’s Internet* is the problem
+- HTTP GET probes to public endpoints  
+- Optional DNS resolution checks  
+- **Control probes** (known-good endpoints) used to determine whether *the local host’s Internet* is the problem
 
-The script uses conservative rules:
+The script applies conservative logic to avoid false positives:
 
-- It will **not** declare a provider outage if control probes are failing.
-- It requires **multiple failed signals** to move a provider to `DEGRADED` or `MAJOR_OUTAGE`.
-- It uses **persistence** (consecutive runs) to prevent false positives and flapping.
+- A provider outage is **not** declared if control probes are failing.
+- Multiple failed signals are required before transitioning to `DEGRADED` or `MAJOR_OUTAGE`.
+- **Persistence** (consecutive runs) is required to change states, preventing flapping.
+
+---
 
 ## Outputs
 
-- **Console summary** (always)
-- **JSON event** to stdout (optional)
-- **MQTT publish** (optional; requires `mqtt` package)
+The script supports multiple output methods:
+
+- **Console summary** (always enabled)
+- **Structured JSON event** to stdout (optional)
+- **MQTT publish** (optional; requires the `mqtt` package)
+
+---
 
 ## Quick start
 
-1) Copy the folder to the machine running MeshMonitor (or wherever you run scripts).
+1. Copy the project folder to the system running MeshMonitor (or wherever you execute scripts).
 
-2) Create config:
-
-```bash
-cp config.example.json config.json
-nano config.json
-```
-
-3) Run once:
-
-```bash
+2. Create and edit the configuration file:
+   ```bash
+   cp config.example.json config.json
+   nano config.json
+3. Run once to verify:
+  ```
 node index.js
-```
-
-4) Schedule it (recommended): run every **1–5 minutes** using your preferred scheduler (cron, systemd timer, MeshMonitor’s scheduler, etc.).
+  ```
+4. Schedule execution (recommended):
+- Run every 1–5 minutes using your preferred scheduler:
+- cron
+- systemd timer
+- MeshMonitor’s scheduler
+- or another task runner
 
 ## MQTT (optional)
 
-If you enable MQTT in `config.json`, install the dependency:
-
-```bash
+If MQTT publishing is enabled in config.json, install the dependency:
+```
 npm install mqtt
 ```
-
-If `mqtt.enabled` is true but the module is not installed, the script will log a warning and continue.
+If ``mqtt.enabled`` is set to ``true`` but the module is not installed, the script will log a warning and continue running without MQTT output.
 
 ## Configuration
 
-Edit `config.json`:
-
-- `region`: label included in outputs (e.g., `mia`, `us-east`)
-- `timeoutMs`: per-request timeout
-- `consecutiveFailForMajor`: consecutive failing runs before `MAJOR_OUTAGE`
-- `consecutiveOkForRecovery`: consecutive healthy runs before `RECOVERED`
-- `controlProbes`: endpoints used to validate that your host has Internet
-- `providers`: paths to provider list JSON files
-- `mqtt`: optional emitter
+Key fields in ``config.json``:
+- ``region`` – label included in output (e.g., ``mia``, ``us-east``)
+- ``timeoutMs`` – per-request timeout in milliseconds
+- ``consecutiveFailForMajor`` – runs required before ``MAJOR_OUTAGE``
+- ``consecutiveOkForRecovery`` – runs required before ``RECOVERED``
+- ``controlProbes`` – endpoints used to confirm local Internet health
+- ``providers`` – paths to provider definition JSON files
+- ``mqtt`` – optional MQTT configuration
 
 ## Provider lists
+- Provider definitions live in:
+- ``providers/mobile.json``
+- ``providers/isp.json``
+- ``providers/cloud.json``
 
-Provider lists live in:
-
-- `providers/mobile.json`
-- `providers/isp.json`
-- `providers/cloud.json`
-
-Each provider supports:
-
-```json
+Each provider supports the following structure:
+```
 {
   "name": "cloudflare",
   "type": "cloud",
-  "probes": ["https://www.cloudflare.com/", "https://1.1.1.1/"],
-  "dns": ["cloudflare.com", "one.one.one.one"]
+  "probes": [
+    "https://www.cloudflare.com/",
+    "https://1.1.1.1/"
+  ],
+  "dns": [
+    "cloudflare.com",
+    "one.one.one.one"
+  ]
 }
 ```
 
 ## Event schema
 
-When `emitJson` is enabled, the script prints a structured event:
+When ``emitJson`` is enabled, the script outputs a structured event:
 
-```json
+```
 {
   "type": "carrier_outage",
   "provider": "cloudflare",
@@ -117,14 +134,14 @@ When `emitJson` is enabled, the script prints a structured event:
   "confidence": 0.88,
   "region": "us-east",
   "signals": [
-    {"name":"control:https://example.com","ok":true,"ms":123},
-    {"name":"probe:https://www.cloudflare.com/","ok":false,"detail":"timeout"}
+    {"name": "control:https://example.com", "ok": true, "ms": 123},
+    {"name": "probe:https://www.cloudflare.com/", "ok": false, "detail": "timeout"}
   ],
   "firstSeen": "2026-01-16T03:10:00Z",
   "lastSeen": "2026-01-16T03:14:00Z"
 }
-```
 
+```
 States:
 
 - `OK`
