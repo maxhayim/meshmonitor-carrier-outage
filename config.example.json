@@ -1,29 +1,17 @@
 {
-  "region": "us-east",
-  "timeoutMs": 7000,
-
-  "emitJson": true,
-
-  "consecutiveFailForMajor": 3,
-  "consecutiveOkForRecovery": 5,
-
-  "controlProbes": [
-    "https://example.com",
-    "https://www.cloudflare.com/cdn-cgi/trace"
-  ],
-
-  "providers": {
-    "mobile": "./providers/mobile.json",
-    "isp": "./providers/isp.json",
-    "cloud": "./providers/cloud.json"
+  "node": {
+    "nodeId": "MeshMonitor Node 001",
+    "state": "FL",
+    "region": "mia",
+    "providerHint": "att"
   },
-
   "mqtt": {
-    "enabled": false,
+    "enabled": true,
     "url": "mqtt://127.0.0.1:1883",
-    "topic": "meshmonitor/carrier/outage",
-    "username": "",
-    "password": "",
-    "clientId": "meshmonitor-carrier-outage"
+    "presenceBaseTopic": "meshmonitor/carrier/presence",
+    "localBaseTopic": "meshmonitor/carrier/local",
+    "scopeBaseTopic": "meshmonitor/carrier/scope",
+    "clientId": "meshmonitor-node-001",
+    "lwt": true
   }
 }
