@@ -1,6 +1,6 @@
 [
-  {
-    "name": "cloudflare",
-    "type": "cloud"
-  }
+  { "name": "cloudflare", "type": "cloud" },
+  { "name": "aws", "type": "cloud" },
+  { "name": "google", "type": "cloud" },
+  { "name": "microsoft", "type": "cloud" }
 ]
