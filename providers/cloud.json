@@ -1,6 +1,42 @@
 [
-  { "name": "cloudflare", "type": "cloud" },
-  { "name": "aws", "type": "cloud" },
-  { "name": "google", "type": "cloud" },
-  { "name": "microsoft", "type": "cloud" }
+  {
+    "name": "cloudflare",
+    "type": "cloud",
+    "thresholds": {
+      "scopeStateMinNodes": 2,
+      "scopeNationwideMinStates": 3,
+      "scopeNationwideMinNodes": 5,
+      "debounceMs": 60000
+    }
+  },
+  {
+    "name": "aws",
+    "type": "cloud",
+    "thresholds": {
+      "scopeStateMinNodes": 2,
+      "scopeNationwideMinStates": 3,
+      "scopeNationwideMinNodes": 5,
+      "debounceMs": 60000
+    }
+  },
+  {
+    "name": "google",
+    "type": "cloud",
+    "thresholds": {
+      "scopeStateMinNodes": 2,
+      "scopeNationwideMinStates": 3,
+      "scopeNationwideMinNodes": 5,
+      "debounceMs": 60000
+    }
+  },
+  {
+    "name": "microsoft",
+    "type": "cloud",
+    "thresholds": {
+      "scopeStateMinNodes": 2,
+      "scopeNationwideMinStates": 3,
+      "scopeNationwideMinNodes": 5,
+      "debounceMs": 60000
+    }
+  }
 ]
