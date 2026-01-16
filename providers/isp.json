@@ -1,6 +1,6 @@
 [
-  {
-    "name": "comcast",
-    "type": "isp"
-  }
+  { "name": "comcast_xfinity", "type": "isp" },
+  { "name": "spectrum", "type": "isp" },
+  { "name": "att_fiber", "type": "isp" },
+  { "name": "verizon_fios", "type": "isp" }
 ]
