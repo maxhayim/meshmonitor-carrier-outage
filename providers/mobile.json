@@ -1,6 +1,5 @@
 [
-  {
-    "name": "att",
-    "type": "mobile"
-  }
+  { "name": "att", "type": "mobile" },
+  { "name": "verizon", "type": "mobile" },
+  { "name": "tmobile", "type": "mobile" }
 ]
