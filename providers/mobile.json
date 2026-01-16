@@ -1,5 +1,32 @@
 [
-  { "name": "att", "type": "mobile" },
-  { "name": "verizon", "type": "mobile" },
-  { "name": "tmobile", "type": "mobile" }
+  {
+    "name": "att",
+    "type": "mobile",
+    "thresholds": {
+      "scopeStateMinNodes": 2,
+      "scopeNationwideMinStates": 3,
+      "scopeNationwideMinNodes": 5,
+      "debounceMs": 90000
+    }
+  },
+  {
+    "name": "verizon",
+    "type": "mobile",
+    "thresholds": {
+      "scopeStateMinNodes": 2,
+      "scopeNationwideMinStates": 3,
+      "scopeNationwideMinNodes": 5,
+      "debounceMs": 90000
+    }
+  },
+  {
+    "name": "tmobile",
+    "type": "mobile",
+    "thresholds": {
+      "scopeStateMinNodes": 2,
+      "scopeNationwideMinStates": 3,
+      "scopeNationwideMinNodes": 5,
+      "debounceMs": 90000
+    }
+  }
 ]
