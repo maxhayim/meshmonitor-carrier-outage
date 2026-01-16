@@ -1,7 +1,8 @@
 <p align="center">
-  <a href="https://www.python.org/">
-    <img src="https://img.shields.io/badge/Python-3.8%2B-blue" alt="Python Version">
-  </a>
+ <a href="https://nodejs.org/">
+  <img src="https://img.shields.io/badge/Node.js-18%2B-brightgreen" alt="Node.js Version">
+</a>
+  
   <a href="https://opensource.org/licenses/MIT">
     <img src="https://img.shields.io/badge/License-MIT-green" alt="License">
   </a>
@@ -9,7 +10,7 @@
 
 # 📡 Carrier Outage
 
-Carrier Outage is a [**MeshMonitor**](https://github.com/Yeraze/MeshMonitor) Script script that detects **major provider outages** (mobile carriers, ISPs/landline providers, and core cloud/CDN/DNS infrastructure) using conservative public reachability signals.
+Carrier Outage is a [**MeshMonitor**](https://github.com/Yeraze/MeshMonitor) script that detects **major provider outages** (mobile carriers, ISPs/landline providers, and core cloud/CDN/DNS infrastructure) using conservative public reachability signals.
 
 The intent is operational: quickly answer **“Is the problem local to my node/ISP, or is there a wider provider event?”**
 
