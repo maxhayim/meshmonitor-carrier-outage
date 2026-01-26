@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+// mm_meta:
+//   name: Carrier Outage (Node Probe)
+//   emoji: 📡
+//   language: JavaScript
 'use strict';
 
 const fs = require('fs');
@@ -65,8 +69,10 @@ async function fetchOk(url, timeoutMs) {
     ts: nowISO()
   };
 
+  // If MQTT is disabled, emit JSON (optional) and exit cleanly
   if (!mqttCfg.enabled) {
     if (cfg.emitJson) console.log(JSON.stringify(localMsg));
+    else console.log(JSON.stringify(localMsg, null, 2));
     process.exit(0);
   }
 
@@ -104,73 +110,17 @@ async function fetchOk(url, timeoutMs) {
     );
 
     client.publish(localTopic, JSON.stringify(localMsg), { retain: true });
+
     if (cfg.emitJson) console.log(JSON.stringify(localMsg));
     client.end(true);
   });
-})();
-    console.log(JSON.stringify({
-      type: 'node_local_status',
-      nodeId: node.nodeId,
-      providerHint: node.providerHint,
-      state: node.state,
-      region: node.region,
-      controlOk,
-      ts: nowISO()
-    }, null, 2));
-    return;
-  }
 
-  const presenceTopic = `${mqttCfg.presenceBaseTopic}/${node.nodeId}`;
-  const localTopic = `${mqttCfg.localBaseTopic}/${node.nodeId}`;
-
-  const client = mqtt.connect(mqttCfg.url, {
-    clientId: mqttCfg.clientId,
-    will: mqttCfg.lwt ? {
-      topic: presenceTopic,
-      payload: JSON.stringify({
-        type: 'node_presence',
-        nodeId: node.nodeId,
-        presence: 'OFFLINE',
-        ts: nowISO()
-      }),
-      retain: true
-    } : undefined
+  client.on('error', (err) => {
+    console.error(`[${SCRIPT}] MQTT error`, err);
+    try { client.end(true); } catch {}
+    process.exit(1);
   });
-
-  client.on('connect', () => {
-    client.publish(
-      presenceTopic,
-      JSON.stringify({
-        type: 'node_presence',
-        nodeId: node.nodeId,
-        presence: 'ONLINE',
-        providerHint: node.providerHint,
-        state: node.state,
-        region: node.region,
-        ts: nowISO()
-      }),
-      { retain: true }
-    );
-
-    client.publish(
-      localTopic,
-      JSON.stringify({
-        type: 'node_local_status',
-        nodeId: node.nodeId,
-        providerHint: node.providerHint,
-        state: node.state,
-        region: node.region,
-        controlOk,
-        ts: nowISO()
-      }),
-      { retain: true }
-    );
-
-    client.end();
-  });
-}
-
-run().catch(err => {
+})().catch((err) => {
   console.error(`[${SCRIPT}] error`, err);
   process.exit(1);
 });
