@@ -1,7 +1,13 @@
 #!/usr/bin/env node
+// mm_meta:
+//   name: Carrier Outage (Aggregator)
+//   emoji: 🧠
+//   language: JavaScript
 'use strict';
 
 const mqtt = require('mqtt');
+
+const SCRIPT = 'carrier-outage-aggregator';
 
 const cfg = {
   url: 'mqtt://127.0.0.1:1883',
@@ -13,6 +19,7 @@ const cfg = {
 };
 
 const nodes = new Map();
+// kept for future debounce/state handling if you expand; currently unused
 const providerState = new Map();
 
 function nowISO() {
@@ -23,27 +30,31 @@ function withinWindow(ts) {
   return ts && (Date.now() - Date.parse(ts)) <= cfg.windowMs;
 }
 
-function scopeRank(scope) {
-  return scope === 'NATIONWIDE' ? 3 : scope === 'STATE' ? 2 : 1;
-}
-
-function classify(nodes) {
+function classify(impactedNodes) {
   const states = new Map();
-  nodes.forEach(n => {
-    states.set(n.state, (states.get(n.state) || 0) + 1);
+  impactedNodes.forEach(n => {
+    const st = n.state || 'UNKNOWN';
+    states.set(st, (states.get(st) || 0) + 1);
   });
 
-  if (states.size >= 3 || nodes.length >= 5) return 'NATIONWIDE';
-  if ([...states.values()].some(c => c >= 2)) return 'STATE';
+  // Basic scope heuristics (conservative defaults)
+  // - NATIONWIDE: >=3 states (known) OR >=5 nodes
+  // - STATE: >=2 nodes in the same known state
+  const knownStatesCount = [...states.keys()].filter(s => s !== 'UNKNOWN').length;
+
+  if (knownStatesCount >= 3 || impactedNodes.length >= 5) return 'NATIONWIDE';
+  if ([...states.entries()].some(([st, c]) => st !== 'UNKNOWN' && c >= 2)) return 'STATE';
   return 'LOCAL';
 }
 
-function confidence(nodes) {
-  const states = new Set(nodes.map(n => n.state).filter(Boolean));
-  const weightSum = nodes.reduce(
+function confidence(impactedNodes) {
+  const states = new Set(impactedNodes.map(n => n.state).filter(Boolean));
+  const weightSum = impactedNodes.reduce(
     (s, n) => s + (typeof n.regionWeight === 'number' ? n.regionWeight : 1.0),
     0
   );
+
+  // Simple spread + weight confidence curve
   const score = Math.log1p(weightSum) + Math.log1p(states.size);
   return Math.min(0.95, 1 - Math.exp(-score));
 }
@@ -60,17 +71,31 @@ const client = mqtt.connect(cfg.url);
 client.on('connect', () => {
   client.subscribe(`${cfg.presenceBase}/+`);
   client.subscribe(`${cfg.localBase}/+`);
+  console.log(`[${SCRIPT}] running`);
+});
+
+client.on('error', (err) => {
+  console.error(`[${SCRIPT}] mqtt error`, err);
 });
 
 client.on('message', (topic, payload) => {
-  const msg = JSON.parse(payload.toString());
-  const nodeId = topic.split('/').pop();
-  nodes.set(nodeId, { ...nodes.get(nodeId), ...msg });
+  let msg;
+  try {
+    msg = JSON.parse(payload.toString());
+  } catch {
+    return;
+  }
 
+  const nodeId = topic.split('/').pop();
+  nodes.set(nodeId, { ...nodes.get(nodeId), ...msg, nodeId });
+
+  // providerHint -> impacted nodes
   const providers = {};
 
   for (const n of nodes.values()) {
     if (!withinWindow(n.ts)) continue;
+
+    // Treat OFFLINE or controlOk=false as "impacted"
     if (n.presence === 'OFFLINE' || n.controlOk === false) {
       const p = n.providerHint || 'unknown';
       providers[p] = providers[p] || [];
@@ -80,6 +105,7 @@ client.on('message', (topic, payload) => {
 
   const summary = {
     type: 'carrier_outage_summary',
+    detector: SCRIPT,
     ts: nowISO(),
     providers: {}
   };
@@ -93,19 +119,21 @@ client.on('message', (topic, payload) => {
       scope,
       severity: sev,
       confidence: conf,
-      impactedCount: impacted.length
+      impactedCount: impacted.length,
+      affectedStates: [...new Set(impacted.map(n => n.state).filter(Boolean))]
     };
 
     client.publish(
       `${cfg.scopeBase}/${provider}`,
       JSON.stringify({
         type: 'carrier_outage_scope',
+        detector: SCRIPT,
         provider,
         scope,
         severity: sev,
         confidence: conf,
         impactedCount: impacted.length,
-        affectedStates: [...new Set(impacted.map(n => n.state))],
+        affectedStates: summary.providers[provider].affectedStates,
         ts: nowISO()
       }),
       { retain: true }
@@ -113,87 +141,4 @@ client.on('message', (topic, payload) => {
   }
 
   client.publish(cfg.summaryTopic, JSON.stringify(summary), { retain: true });
-});
-  const states = new Map();
-  nodes.forEach(n => {
-    states.set(n.state, (states.get(n.state) || 0) + 1);
-  });
-
-  if (
-    states.size >= cfg.nationwideStatesMin ||
-    nodes.length >= cfg.nationwideNodesMin
-  ) return 'NATIONWIDE';
-
-  if ([...states.values()].some(c => c >= cfg.stateMin))
-    return 'STATE';
-
-  return 'LOCAL';
-}
-
-function confidence(nodes) {
-  const states = new Set(nodes.map(n => n.state));
-  const score = nodes.length * 0.6 + states.size * 0.8;
-  return Math.min(0.95, 1 - Math.exp(-score / 4));
-}
-
-const client = mqtt.connect(cfg.url);
-
-client.on('connect', () => {
-  client.subscribe(`${cfg.presenceBase}/+`);
-  client.subscribe(`${cfg.localBase}/+`);
-  console.log(`[${SCRIPT}] running`);
-});
-
-client.on('message', (topic, payload) => {
-  const msg = JSON.parse(payload.toString());
-  const nodeId = topic.split('/').pop();
-
-  nodes.set(nodeId, { ...nodes.get(nodeId), ...msg });
-
-  const providers = {};
-
-  for (const n of nodes.values()) {
-    if (!withinWindow(n.ts)) continue;
-    if (n.presence === 'OFFLINE' || n.controlOk === false) {
-      const p = n.providerHint || 'unknown';
-      providers[p] = providers[p] || [];
-      providers[p].push(n);
-    }
-  }
-
-  for (const [provider, impacted] of Object.entries(providers)) {
-    const rawScope = classify(impacted);
-    const prev = providerState.get(provider) || {
-      scope: 'LOCAL',
-      since: Date.now()
-    };
-
-    let finalScope = prev.scope;
-
-    if (scopeRank(rawScope) > scopeRank(prev.scope)) {
-      if (Date.now() - prev.since >= cfg.debounceMs)
-        finalScope = rawScope;
-    } else {
-      finalScope = rawScope;
-    }
-
-    providerState.set(provider, {
-      scope: finalScope,
-      since: finalScope === prev.scope ? prev.since : Date.now()
-    });
-
-    client.publish(
-      `${cfg.scopeBase}/${provider}`,
-      JSON.stringify({
-        type: 'carrier_outage_scope',
-        provider,
-        scope: finalScope,
-        confidence: confidence(impacted),
-        impactedCount: impacted.length,
-        affectedStates: [...new Set(impacted.map(n => n.state))],
-        ts: nowISO()
-      }),
-      { retain: true }
-    );
-  }
 });
