@@ -9,7 +9,7 @@
 
 # 📡 Carrier Outage
 
-**Carrier Outage** is a [**MeshMonitor**](https://github.com/Yeraze/MeshMonitor) script that detects **major provider outages** across mobile carriers, ISP / landline providers, and core cloud/CDN/DNS infrastructure using conservative public reachability signals.
+**Carrier Outage** is a [**MeshMonitor**](https://github.com/Yeraze/MeshMonitor) script that detects **major provider outages** across mobile carriers, ISP / landline providers, and core cloud/CDN/DNS infrastructure using conservative public reachability signals over [**Meshstatic**](https://meshtastic.org/).
 
 The intent is operational and practical:
 
