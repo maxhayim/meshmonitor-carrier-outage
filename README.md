@@ -177,6 +177,12 @@ Full license text: https://opensource.org/licenses/MIT
 
 ---
 
+## Contributing
+
+Pull requests are welcome. Open an issue first to discuss ideas or report bugs.</p>
+
+---
+
 ## Acknowledgments
 
 - MeshMonitor built by Yeraze (https://github.com/Yeraze)  
