@@ -1,4 +1,9 @@
 <p align="center">
+  <img src="assets/logo.png" alt="Carrier Outage Logo" width="200"/>
+</p>
+
+
+<p align="center">
   <a href="https://nodejs.org/">
     <img src="https://img.shields.io/badge/Node.js-18%2B-brightgreen" alt="Node.js Version">
   </a>
