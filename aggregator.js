@@ -89,12 +89,16 @@ client.on('message', (topic, payload) => {
   const nodeId = topic.split('/').pop();
   nodes.set(nodeId, { ...nodes.get(nodeId), ...msg, nodeId });
 
+  // Drop nodes that have fallen out of the window so the map doesn't
+  // grow without bound over the life of a long-running aggregator.
+  for (const [id, n] of nodes) {
+    if (!withinWindow(n.ts)) nodes.delete(id);
+  }
+
   // providerHint -> impacted nodes
   const providers = {};
 
   for (const n of nodes.values()) {
-    if (!withinWindow(n.ts)) continue;
-
     // Treat OFFLINE or controlOk=false as "impacted"
     if (n.presence === 'OFFLINE' || n.controlOk === false) {
       const p = n.providerHint || 'unknown';

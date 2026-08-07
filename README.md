@@ -14,162 +14,170 @@
 
 # 📡 Carrier Outage
 
-**Carrier Outage** is a [**MeshMonitor**](https://github.com/Yeraze/MeshMonitor) script that detects **major provider outages** across mobile carriers, ISP / landline providers, and core cloud/CDN/DNS infrastructure using conservative public reachability signals, for delivery over [**Meshtastic**](https://meshtastic.org/), [**MeshCore**](https://meshcore.co.uk/), or any other mesh network MeshMonitor supports.
+**Carrier Outage** is a [**MeshMonitor**](https://github.com/Yeraze/MeshMonitor) script that detects **provider-level outages** — mobile carriers, ISP/landline, or core cloud/CDN infrastructure — by correlating simple connectivity checks across multiple nodes, for delivery over [**Meshtastic**](https://meshtastic.org/), [**MeshCore**](https://meshcore.co.uk/), or any other mesh network MeshMonitor supports.
 
 The intent is operational and practical:
 
-> “Is the problem local to my node or ISP, or is there a wider provider-level event?”
+> "Is the problem local to my node or ISP, or is there a wider provider-level event?"
 
 ---
 
-## What it monitors
+## Architecture
 
-Providers are grouped into three classes:
+Carrier Outage has two parts that work together:
 
-- **Mobile**  
-  Examples: AT&T, Verizon, T-Mobile
+- **`index.js`** — a short-lived **probe**, run on a schedule (cron, systemd timer, etc.) on each node/vantage point you want to monitor. Each run checks whether *that* node's Internet is reachable and publishes the result.
+- **`aggregator.js`** — a single long-running **collector**, subscribed over MQTT to every node's probe results. It correlates results across nodes that share the same `providerHint` (e.g. all your `att` nodes) and publishes a scope/severity verdict per provider.
 
-- **ISP / Landline**  
-  Examples: Comcast/Xfinity, Spectrum, AT&T Fiber, Verizon Fios  
-  (optionally including transit/backbone providers)
-
-- **Cloud / Core Internet**  
-  Examples: Cloudflare, AWS, Google, Microsoft Azure
-
-Providers can be added, removed, or customized by editing the JSON files in the `providers/` directory.
+A single probe run only tells you about one node. The aggregator is what turns "my node's Internet is down" into "AT&T looks down across 3 states" — you need both pieces running for outage detection to actually work, not just `index.js` alone.
 
 ---
 
 ## How detection works
 
-Each provider is evaluated using multiple **signals**:
+**Per node (`index.js`):**
 
-- HTTP GET probes to public endpoints  
-- Optional DNS resolution checks  
-- **Control probes** (known-good endpoints) used to determine whether the local host’s Internet is the problem
+1. Hits a small list of **control probes** (known-good, high-availability endpoints you configure) with a timeout.
+2. If at least 67% of control probes succeed, the node considers its own connectivity `controlOk: true`; otherwise `false`.
+3. Publishes an `ONLINE` presence message and a local-status message (nodeId, `providerHint`, state, region, `controlOk`) — either over MQTT (retained, with a Last Will offline message) or as JSON on stdout if MQTT is disabled.
 
-The script applies conservative logic to avoid false positives:
+**Aggregation (`aggregator.js`):**
 
-- A provider outage is **not** declared if control probes are failing.
-- Multiple failed signals are required before transitioning to DEGRADED or MAJOR_OUTAGE.
-- **Persistence** (consecutive runs) is required to change states, preventing flapping.
+1. Subscribes to every node's presence and local-status topics.
+2. Treats a node as *impacted* if it's `OFFLINE` (via presence/LWT) or reported `controlOk: false`, within a 10-minute rolling window.
+3. Groups impacted nodes by `providerHint` and classifies scope:
+   - **NATIONWIDE** — impacted nodes span ≥3 distinct states, or ≥5 nodes total
+   - **STATE** — ≥2 impacted nodes share the same state
+   - **LOCAL** — otherwise
+4. Computes a **confidence** score (0–0.95) from how spread out and how heavily-weighted the impacted nodes are, and a **severity** (`critical` / `major` / `minor`) from scope + confidence + node count.
+5. Publishes a per-provider scope event and an overall summary, retained, over MQTT.
+
+This is a **stateless, single-snapshot** classifier — each incoming message immediately recomputes and republishes scope for the affected provider. There's no run-to-run persistence or debounce window beyond the 10-minute freshness cutoff, so a provider can flip between scopes quickly if node status is flapping. Run probes from **multiple independent vantage points** for a meaningful signal — a single node's control-probe failure just means that node's Internet is down, not a provider outage.
 
 ---
 
 ## Outputs
 
-The script supports multiple output methods:
-
-- **Console summary** (always enabled)
-- **Structured JSON event** to stdout (optional)
-- **MQTT publish** (optional; requires the mqtt package)
+- **`index.js`**: console/stdout (JSON, always when MQTT is disabled), or MQTT presence + local-status topics (retained) when enabled.
+- **`aggregator.js`**: MQTT scope topics (one per provider) and a summary topic (retained), continuously as messages arrive.
 
 ---
 
 ## Quick start
 
-1. Copy the project folder to the system running MeshMonitor (or wherever you execute scripts).
+1. Copy the project folder to the system(s) running MeshMonitor (or wherever you execute scripts). `index.js` runs on each monitored node/vantage point; `aggregator.js` runs once, anywhere that can reach your MQTT broker and all the nodes' publishes.
 
-2. Create and edit the configuration file:
+2. Create and edit the configuration file (used by `index.js` only — see [MQTT](#mqtt-optional-for-indexjs-required-for-aggregatorjs) below for `aggregator.js`):
 
-   cp config.example.json config.json  
+   ```
+   cp config.example.json config.json
    nano config.json
+   ```
 
-3. Run once to verify:
+3. Run a probe once to verify:
 
+   ```
    node index.js
+   ```
 
-4. Schedule execution (recommended):
+4. Schedule `index.js` execution on every monitored node (recommended: every **1–5 minutes**) using cron, a systemd timer, MeshMonitor's scheduler, or another task runner.
 
-- Run every **1–5 minutes** using your preferred scheduler:
-  - cron
-  - systemd timer
-  - MeshMonitor’s scheduler
-  - or another task runner
+5. If you want provider-level correlation across nodes (not just a single node's local status), also run `aggregator.js` as a **long-running process** (e.g. under systemd or pm2) somewhere with access to your MQTT broker.
 
 ---
 
-## MQTT (optional)
+## MQTT (optional for `index.js`, required for `aggregator.js`)
 
-If MQTT publishing is enabled in config.json, install the dependency:
+`index.js` can run standalone (MQTT disabled, JSON on stdout) or publish to MQTT. If `mqtt.enabled` is `true` in `config.json` but the `mqtt` package isn't installed, it logs a warning and falls back to stdout output rather than crashing.
 
-   npm install mqtt
+`aggregator.js` only does anything useful when nodes are publishing to MQTT, so it always requires the dependency:
 
-If mqtt.enabled is set to true but the module is not installed, the script will log a warning and continue running without MQTT output.
+```
+npm install mqtt
+```
+
+**Note:** `aggregator.js` does not read `config.json`. Its broker URL (`mqtt://127.0.0.1:1883`), topic names, and 10-minute window are currently hardcoded at the top of the file — edit `aggregator.js` directly if your broker isn't on localhost or you need different topics.
 
 ---
 
 ## Configuration
 
-Key fields in config.json:
+Key fields in `config.json` (all consumed by `index.js`):
 
-- region – label included in output (e.g., mia, us-east)
-- timeoutMs – per-request timeout in milliseconds
-- consecutiveFailForMajor – runs required before MAJOR_OUTAGE
-- consecutiveOkForRecovery – runs required before RECOVERED
-- controlProbes – endpoints used to confirm local Internet health
-- providers – paths to provider definition JSON files
-- mqtt – optional MQTT configuration
-
----
-
-## Provider lists
-
-Provider definitions live in:
-
-- providers/mobile.json
-- providers/isp.json
-- providers/cloud.json
-
-Each provider supports the following structure:
-
-    {
-      "name": "cloudflare",
-      "type": "cloud",
-      "probes": [
-        "https://www.cloudflare.com/",
-        "https://1.1.1.1/"
-      ],
-      "dns": [
-        "cloudflare.com",
-        "one.one.one.one"
-      ]
-    }
+- `timeoutMs` — per-control-probe timeout in milliseconds
+- `emitJson` — emit compact single-line JSON on stdout instead of pretty-printed
+- `controlProbes` — endpoints used to confirm the node's own Internet is healthy
+- `node.nodeId` — unique identifier for this node (required)
+- `node.providerHint` — the carrier/ISP/cloud provider this node is meant to represent (required) — used by the aggregator to group nodes
+- `node.state`, `node.region` — optional labels used for scope classification and output
+- `node.regionWeight` — optional weighting factor fed into the aggregator's confidence score
+- `mqtt.enabled`, `mqtt.url`, `mqtt.presenceBaseTopic`, `mqtt.localBaseTopic`, `mqtt.clientId`, `mqtt.lwt` — MQTT publish settings
 
 ---
 
-## Event schema
+## Provider naming
 
-When emitJson is enabled, the script outputs a structured event:
+`providers/mobile.json`, `providers/isp.json`, and `providers/cloud.json` list the provider name strings (`att`, `verizon`, `comcast_xfinity`, `cloudflare`, etc.) this project was designed around — use them as a naming reference for `node.providerHint` so nodes monitoring the same provider group together correctly in the aggregator. These files aren't read by the code; per-provider probe URLs, DNS checks, and threshold tuning described in earlier versions of this project aren't implemented yet.
 
-    {
-      "type": "carrier_outage",
-      "provider": "cloudflare",
-      "providerType": "cloud",
-      "state": "MAJOR_OUTAGE",
-      "confidence": 0.88,
-      "region": "us-east",
-      "signals": [
-        {"name": "control:https://example.com", "ok": true, "ms": 123},
-        {"name": "probe:https://www.cloudflare.com/", "ok": false, "detail": "timeout"}
-      ],
-      "firstSeen": "2026-01-16T03:10:00Z",
-      "lastSeen": "2026-01-16T03:14:00Z"
-    }
+---
 
-States:
+## Message schemas
 
-- OK
-- DEGRADED
-- MAJOR_OUTAGE
-- RECOVERED
+**Local status** (from `index.js`, console or `local` MQTT topic):
+
+```json
+{
+  "type": "node_local_status",
+  "nodeId": "MeshMonitor Node 001",
+  "providerHint": "att",
+  "state": "FL",
+  "region": "mia",
+  "regionWeight": 1.0,
+  "controlOk": true,
+  "control": { "passed": 2, "total": 2 },
+  "ts": "2026-08-07T19:00:00.000Z"
+}
+```
+
+**Presence** (from `index.js`, `presence` MQTT topic, retained; LWT publishes an `OFFLINE` variant on unclean disconnect):
+
+```json
+{
+  "type": "node_presence",
+  "nodeId": "MeshMonitor Node 001",
+  "presence": "ONLINE",
+  "providerHint": "att",
+  "ts": "2026-08-07T19:00:00.000Z"
+}
+```
+
+**Provider scope** (from `aggregator.js`, `scope/<provider>` MQTT topic, retained):
+
+```json
+{
+  "type": "carrier_outage_scope",
+  "detector": "carrier-outage-aggregator",
+  "provider": "att",
+  "scope": "STATE",
+  "severity": "major",
+  "confidence": 0.71,
+  "impactedCount": 2,
+  "affectedStates": ["FL"],
+  "ts": "2026-08-07T19:00:05.000Z"
+}
+```
+
+Scope: `LOCAL` / `STATE` / `NATIONWIDE`. Severity: `minor` / `major` / `critical`.
+
+**Summary** (from `aggregator.js`, `summary` MQTT topic, retained) — same per-provider shape as scope events, keyed by provider, under `{ "type": "carrier_outage_summary", "providers": { ... } }`.
 
 ---
 
 ## Operational notes
 
 - This script cannot prove **tower-level** or **neighborhood-level** cellular failures.
-- For higher confidence, run it from **two or more locations** and correlate results.
+- Detection quality depends entirely on running `index.js` from **multiple independent nodes** per provider — a single node tells you nothing about scope.
+- Scope/severity is recomputed on every incoming message with no debounce beyond the 10-minute freshness window, so treat rapid scope changes as a sign of flapping connectivity, not necessarily a changing outage.
 
 ---
 

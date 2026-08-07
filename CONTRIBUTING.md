@@ -1,6 +1,6 @@
-# Contributing to ZPTTLink
+# Contributing to Carrier Outage
 
-Thank you for your interest in contributing to ZPTTLink! We welcome contributions from the community and want to make the process clear and straightforward.
+Thank you for your interest in contributing to Carrier Outage! We welcome contributions from the community and want to make the process clear and straightforward.
 
 ## Ways to Contribute
 

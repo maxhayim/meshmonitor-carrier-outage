@@ -7,7 +7,6 @@
 
 const fs = require('fs');
 const path = require('path');
-const mqtt = require('mqtt');
 
 const SCRIPT = 'carrier-outage';
 
@@ -71,6 +70,16 @@ async function fetchOk(url, timeoutMs) {
 
   // If MQTT is disabled, emit JSON (optional) and exit cleanly
   if (!mqttCfg.enabled) {
+    if (cfg.emitJson) console.log(JSON.stringify(localMsg));
+    else console.log(JSON.stringify(localMsg, null, 2));
+    process.exit(0);
+  }
+
+  let mqtt;
+  try {
+    mqtt = require('mqtt');
+  } catch {
+    console.warn(`[${SCRIPT}] mqtt.enabled is true but the "mqtt" package is not installed; run "npm install mqtt". Continuing without MQTT output.`);
     if (cfg.emitJson) console.log(JSON.stringify(localMsg));
     else console.log(JSON.stringify(localMsg, null, 2));
     process.exit(0);
