@@ -94,6 +94,14 @@ async function fetchOk(url, timeoutMs) {
   });
 
   client.on('connect', () => {
+    let pending = 2;
+    const done = () => {
+      if (--pending === 0) {
+        if (cfg.emitJson) console.log(JSON.stringify(localMsg));
+        client.end();
+      }
+    };
+
     client.publish(
       presenceTopic,
       JSON.stringify({
@@ -106,13 +114,11 @@ async function fetchOk(url, timeoutMs) {
         regionWeight: typeof node.regionWeight === 'number' ? node.regionWeight : 1.0,
         ts: nowISO()
       }),
-      { retain: true }
+      { retain: true },
+      done
     );
 
-    client.publish(localTopic, JSON.stringify(localMsg), { retain: true });
-
-    if (cfg.emitJson) console.log(JSON.stringify(localMsg));
-    client.end(true);
+    client.publish(localTopic, JSON.stringify(localMsg), { retain: true }, done);
   });
 
   client.on('error', (err) => {

@@ -8,7 +8,7 @@ Do not publish exploit details publicly before coordination.
 
 ## RF Network Warning
 
-Meshtastic traffic may be observable depending on network configuration.
+Mesh traffic (Meshtastic, MeshCore, or any other mesh network MeshMonitor supports) may be observable depending on network configuration.
 
 Do not transmit API keys, secrets, or sensitive information over public mesh channels.
 
