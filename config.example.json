@@ -15,11 +15,23 @@
     "https://www.cloudflare.com/cdn-cgi/trace"
   ],
 
+  "targetProbes": [
+    { "name": "my-home-server", "url": "https://home.example.com/health" }
+  ],
+
+  "localAnomaly": {
+    "enabled": true,
+    "minConnections": 20,
+    "ratio": 3,
+    "emaAlpha": 0.3
+  },
+
   "mqtt": {
     "enabled": true,
     "url": "mqtt://127.0.0.1:1883",
     "presenceBaseTopic": "meshmonitor/carrier/presence",
     "localBaseTopic": "meshmonitor/carrier/local",
+    "targetBaseTopic": "meshmonitor/carrier/target",
     "clientId": "meshmonitor-carrier-outage-node001",
     "lwt": true
   }

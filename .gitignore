@@ -13,6 +13,9 @@ pnpm-debug.log*
 # Local configuration
 config.json
 
+# Local anomaly-detection baseline (per-host runtime state, not portable)
+.state.json
+
 # Logs
 logs/
 *.log
